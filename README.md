@@ -1,23 +1,24 @@
-Global Solution 01 - Advanced Programming & Mobile Dev - 3ECA_FIAP_2025 
+# Global Solution 01 - Advanced Programming & Mobile Dev - 3ECA_FIAP_2025 
 
 
-Luana Alves de Santana RM: 98546
+# Luana Alves de Santana RM: 98546
 
 
-Gabriella Francisco de Lauro RM: 99280
+# Gabriella Francisco de Lauro RM: 99280
 
-APP Monitoramento de Riscos de Deslizamentos
+# APP Monitoramento de Riscos de Deslizamentos
 
 ________________________________________________________________
 
 
-Visão Geral do Projeto:
+# Visão Geral do Projeto:
+
 Este é um aplicativo mobile desenvolvido em React Native com Expo que tem como objetivo principal monitorar e prever riscos de deslizamentos de terra através de sensores IoT e análise de dados ambientais. O projeto representa uma solução tecnológica inovadora para prevenção de desastres naturais.
 
 ________________________________________________________________
 
 
-Funcionalidades Principais
+# Funcionalidades Principais
 
 
 🔍 Monitoramento em Tempo Real:
@@ -63,7 +64,7 @@ Autenticação segura com diferentes níveis de acesso
 ________________________________________________________________
 
 
-Arquitetura Técnica
+# Arquitetura Técnica
 
 
 Estrutura de Dados:
@@ -134,14 +135,14 @@ Este aplicativo representa uma ferramenta crucial para salvar vidas e proteger p
 ________________________________________________________________
 
 
-🧪 Guia Completo para Testar o APP de Monitoramento de Deslizamentos
+# 🧪 Guia Completo para Testar o APP de Monitoramento de Deslizamentos
 
 
 📋 Pré-requisitos:
 
 1. Instalar Node.js
    
-# Verificar se Node.js está instalado
+Verificar se Node.js está instalado
 
 node --version
 
