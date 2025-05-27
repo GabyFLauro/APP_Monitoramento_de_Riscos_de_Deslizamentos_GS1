@@ -1,12 +1,13 @@
 # Global Solution 01 - Advanced Programming & Mobile Dev - 3ECA_FIAP_2025 
 
+Integrante:
 
-# Luana Alves de Santana RM: 98546
+Luana Alves de Santana RM: 98546
 
 
-# Gabriella Francisco de Lauro RM: 99280
+Gabriella Francisco de Lauro RM: 99280
 
-# APP Monitoramento de Riscos de Deslizamentos
+
 
 ________________________________________________________________
 
