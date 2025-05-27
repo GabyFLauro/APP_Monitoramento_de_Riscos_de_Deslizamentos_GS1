@@ -69,7 +69,9 @@ Arquitetura Técnica
 Estrutura de Dados:
 
 // Armazenamento local com AsyncStorage
+
 // Dados históricos organizados por coordenadas geográficas
+
 // Máximo de 30 registros por localização para otimização
 
 Algoritmo de Predição:
@@ -162,9 +164,7 @@ npx expo start
 
 5. Abrir no navegador web
  
-# Pressionar 'w' no terminal após o comando anterior
-
-# OU executar diretamente:
+ Pressionar 'w' no terminal após o comando anterior OU executar diretamente:
 
 npx expo start --web
 
