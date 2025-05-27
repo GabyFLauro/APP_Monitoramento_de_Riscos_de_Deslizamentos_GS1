@@ -12,21 +12,23 @@ const STORAGE_KEYS = {
 const mockDoctors: any[] = [];
 
 // Admin mockado
-const mockAdmin = {
+const mockAdmin: User & { password: string } = {
     id: 'admin',
     name: 'Administrador',
     email: 'admin@example.com',
     role: 'admin' as const,
     image: 'https://randomuser.me/api/portraits/men/3.jpg',
+    password: '123456'
 };
 
 // Usuário comum mockado
-const mockUser = {
+const mockUser: User & { password: string } = {
     id: 'user',
     name: 'Fábio',
     email: 'fabio@email.com',
     role: 'patient' as const,
     image: 'https://randomuser.me/api/portraits/men/4.jpg',
+    password: '123456'
 };
 
 // Lista de usuários cadastrados (pacientes)
@@ -143,6 +145,47 @@ export const authService = {
                 ? { ...u, email: newEmail, password: newPassword ? newPassword : u.password }
                 : u
         );
+        await AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_USERS, JSON.stringify(registeredUsers));
+    },
+
+    async updateCurrentUserPassword(currentPassword: string, newPassword: string): Promise<void> {
+        const storedUser = await this.getStoredUser();
+        if (!storedUser) {
+            throw new Error('Usuário não encontrado');
+        }
+
+        // Verifica se é o admin
+        if (storedUser.email === mockAdmin.email) {
+            if (currentPassword !== '123456') {
+                throw new Error('Senha atual incorreta');
+            }
+            // Atualiza a senha do admin mockado
+            mockAdmin.password = newPassword;
+            return;
+        }
+
+        // Verifica se é o usuário comum
+        if (storedUser.email === mockUser.email) {
+            if (currentPassword !== '123456') {
+                throw new Error('Senha atual incorreta');
+            }
+            // Atualiza a senha do usuário comum mockado
+            mockUser.password = newPassword;
+            return;
+        }
+
+        // Verifica se é um usuário registrado
+        const userIndex = registeredUsers.findIndex(u => u.id === storedUser.id);
+        if (userIndex === -1) {
+            throw new Error('Usuário não encontrado');
+        }
+
+        if (registeredUsers[userIndex].password !== currentPassword) {
+            throw new Error('Senha atual incorreta');
+        }
+
+        // Atualiza a senha do usuário registrado
+        registeredUsers[userIndex].password = newPassword;
         await AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_USERS, JSON.stringify(registeredUsers));
     },
 }; 

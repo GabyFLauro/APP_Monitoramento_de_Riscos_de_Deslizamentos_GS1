@@ -1,225 +1,244 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
-import { useRoute, useNavigation } from '@react-navigation/native';
-import { Logo } from '../components/Logo';
-import { LineChart, BarChart } from 'react-native-chart-kit';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Dimensions,
+  TouchableOpacity,
+  Modal,
+  TextInput,
+  Alert,
+} from 'react-native';
+import { useSensors } from '../contexts/SensorContext';
+import { RouteProp, useRoute } from '@react-navigation/native';
+import { RootStackParamList } from '../types/navigation';
 import { Ionicons } from '@expo/vector-icons';
+import { LineChart } from 'react-native-chart-kit';
 
-// Mock data for sensor values
-const generateMockData = (status: 'ok' | 'warning' | 'error') => {
-  const baseValue = status === 'ok' ? 50 : status === 'warning' ? 75 : 90;
-  return Array.from({ length: 8 }, (_, i) => ({
-    timestamp: new Date(Date.now() - i * 60000).toLocaleTimeString(),
-    value: baseValue + (Math.random() * 10 - 5),
-  }));
-};
+type SensorDetailRouteProp = RouteProp<RootStackParamList, 'SensorDetail'>;
 
-// Configurações do gráfico de linha
-const lineChartConfig = {
-  backgroundColor: '#1C1C1E',
-  backgroundGradientFrom: '#1C1C1E',
-  backgroundGradientTo: '#1C1C1E',
-  decimalPlaces: 1,
-  color: (opacity = 1) => `rgba(0, 122, 255, ${opacity})`,
-  labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-  style: {
-    borderRadius: 16,
-  },
-  propsForDots: {
-    r: '4',
-    strokeWidth: '2',
-    stroke: '#007AFF',
-  },
-  propsForLabels: {
-    fontSize: 10,
-  },
-};
+export const SensorDetailScreen: React.FC = () => {
+  const route = useRoute<SensorDetailRouteProp>();
+  const { sensors, riskAssessments } = useSensors();
+  const sensor = sensors.find((s) => s.id === route.params.sensorId);
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [alertThresholds, setAlertThresholds] = useState({
+    warning: '',
+    critical: '',
+  });
 
-// Configurações do gráfico de barras
-const barChartConfig = {
-  backgroundColor: '#1C1C1E',
-  backgroundGradientFrom: '#1C1C1E',
-  backgroundGradientTo: '#1C1C1E',
-  decimalPlaces: 1,
-  color: (opacity = 1) => `rgba(255, 193, 7, ${opacity})`,
-  labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-  style: {
-    borderRadius: 16,
-  },
-  barPercentage: 0.4,
-  propsForLabels: {
-    fontSize: 10,
-  },
-  propsForBackgroundLines: {
-    strokeDasharray: '',
-  },
-};
+  if (!sensor) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorText}>Sensor não encontrado</Text>
+      </View>
+    );
+  }
 
-const screenWidth = Dimensions.get('window').width;
-const chartWidth = screenWidth - 32;
-const chartHeight = 180;
-
-export const SensorDetailScreen = () => {
-  const route = useRoute();
-  const navigation = useNavigation();
-  const { sensorId } = route.params as { sensorId: string };
-
-  // Determine sensor status based on ID
-  const getSensorStatus = (id: string): 'ok' | 'warning' | 'error' => {
-    switch (id) {
-      case '2': // Encoder Linear
-        return 'error';
-      case '3': // Sensor de Pressão
-        return 'warning';
-      case '7': // Sensor de Vibração
-        return 'error';
-      default:
-        return 'ok';
-    }
+  // Mock historical data for the chart
+  const historicalData = {
+    labels: ['12h', '10h', '8h', '6h', '4h', '2h', 'Agora'],
+    datasets: [
+      {
+        data: [65, 70, 68, 72, 75, 73, sensor.lastReading.value],
+      },
+    ],
   };
 
-  const status = getSensorStatus(sensorId);
-  const [sensorData, setSensorData] = useState(generateMockData(status));
-
-  const handleUpdate = () => {
-    setSensorData(generateMockData(status));
+  const getRiskLevel = () => {
+    const assessment = riskAssessments.find(
+      (r) =>
+        r.location.latitude === sensor.location.latitude &&
+        r.location.longitude === sensor.location.longitude
+    );
+    return assessment?.riskLevel || 'low';
   };
 
-  const getStatusColor = (status: 'ok' | 'warning' | 'error') => {
-    switch (status) {
-      case 'ok':
-        return '#007AFF';
-      case 'warning':
+  const getRiskColor = (riskLevel: string) => {
+    switch (riskLevel) {
+      case 'low':
+        return '#4CAF50';
+      case 'medium':
         return '#FFC107';
-      case 'error':
-        return '#FF3B30';
+      case 'high':
+        return '#FF9800';
+      case 'critical':
+        return '#F44336';
       default:
-        return '#8E8E93';
+        return '#9E9E9E';
     }
   };
 
-  const getStatusIcon = (status: 'ok' | 'warning' | 'error') => {
-    switch (status) {
-      case 'ok':
-        return 'checkmark-circle';
-      case 'warning':
-        return 'warning';
-      case 'error':
-        return 'alert-circle';
-      default:
-        return 'help-circle';
+  const handleSaveAlertConfig = () => {
+    const warningValue = parseFloat(alertThresholds.warning);
+    const criticalValue = parseFloat(alertThresholds.critical);
+
+    if (isNaN(warningValue) || isNaN(criticalValue)) {
+      Alert.alert('Erro', 'Por favor, insira valores válidos para os alertas');
+      return;
     }
-  };
 
-  const getStatusText = (status: 'ok' | 'warning' | 'error') => {
-    switch (status) {
-      case 'ok':
-        return 'NORMAL';
-      case 'warning':
-        return 'ALERTA';
-      case 'error':
-        return 'CRÍTICO';
-      default:
-        return 'DESCONHECIDO';
+    if (warningValue >= criticalValue) {
+      Alert.alert('Erro', 'O valor de alerta deve ser menor que o valor crítico');
+      return;
     }
-  };
 
-  // Preparar dados para os gráficos
-  const chartData = {
-    labels: sensorData.map(data => data.timestamp.split(':').slice(0, 2).join(':')),
-    datasets: [
-      {
-        data: sensorData.map(data => data.value),
-        color: (opacity = 1) => `rgba(0, 122, 255, ${opacity})`,
-        strokeWidth: 2,
-      },
-    ],
-  };
-
-  const barChartData = {
-    labels: sensorData.map(data => data.timestamp.split(':').slice(0, 2).join(':')),
-    datasets: [
-      {
-        data: sensorData.map(data => Number(data.value.toFixed(1))),
-      },
-    ],
+    // TODO: Implement actual alert configuration saving
+    Alert.alert(
+      'Sucesso',
+      'Configurações de alerta salvas com sucesso',
+      [{ text: 'OK', onPress: () => setShowAlertModal(false) }]
+    );
   };
 
   return (
     <ScrollView style={styles.container}>
-      <Logo />
-      <Text style={styles.title}>{sensorId}</Text>
-      
-      <View style={styles.statusContainer}>
-        <Text style={styles.statusLabel}>Status:</Text>
-        <View style={styles.statusValueContainer}>
-          <Ionicons 
-            name={getStatusIcon(status)} 
-            size={24} 
-            color={getStatusColor(status)} 
-            style={styles.statusIcon}
-          />
-          <Text style={[styles.statusValue, { color: getStatusColor(status) }]}>
-            {getStatusText(status)}
+      <View style={styles.header}>
+        <Text style={styles.sensorName}>{sensor.name}</Text>
+        <View
+          style={[
+            styles.statusIndicator,
+            { backgroundColor: getRiskColor(getRiskLevel()) },
+          ]}
+        />
+      </View>
+
+      <View style={styles.infoCard}>
+        <Text style={styles.infoTitle}>Última Leitura</Text>
+        <Text style={styles.infoValue}>
+          {sensor.lastReading.value} {sensor.lastReading.unit}
+        </Text>
+        <Text style={styles.infoTimestamp}>
+          {new Date(sensor.lastReading.timestamp).toLocaleString()}
+        </Text>
+      </View>
+
+      <View style={styles.infoCard}>
+        <Text style={styles.infoTitle}>Histórico</Text>
+        <LineChart
+          data={historicalData}
+          width={Dimensions.get('window').width - 32}
+          height={220}
+          chartConfig={{
+            backgroundColor: '#1C1C1E',
+            backgroundGradientFrom: '#1C1C1E',
+            backgroundGradientTo: '#1C1C1E',
+            decimalPlaces: 0,
+            color: (opacity = 1) => `rgba(0, 122, 255, ${opacity})`,
+            labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+            style: {
+              borderRadius: 16,
+            },
+            propsForDots: {
+              r: '6',
+              strokeWidth: '2',
+              stroke: '#007AFF'
+            }
+          }}
+          bezier
+          style={styles.chart}
+        />
+      </View>
+
+      <View style={styles.infoCard}>
+        <Text style={styles.infoTitle}>Informações do Sensor</Text>
+        <View style={styles.infoRow}>
+          <Ionicons name="battery-charging-outline" size={20} color="#4CAF50" />
+          <Text style={styles.infoText}>Bateria: {sensor.batteryLevel}%</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Ionicons name="wifi-outline" size={20} color="#4CAF50" />
+          <Text style={styles.infoText}>
+            Sinal: {sensor.signalStrength}%
+          </Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Ionicons name="location-outline" size={20} color="#4CAF50" />
+          <Text style={styles.infoText}>
+            Lat: {sensor.location.latitude.toFixed(4)}, Long:{' '}
+            {sensor.location.longitude.toFixed(4)}
           </Text>
         </View>
       </View>
 
-      <View style={styles.currentValueContainer}>
-        <Text style={styles.currentValueLabel}>Valor Atual:</Text>
-        <Text style={[styles.currentValue, { color: getStatusColor(status) }]}>
-          {sensorData[0].value.toFixed(2)}
-        </Text>
-      </View>
-
-      <View style={styles.chartContainer}>
-        <Text style={styles.chartTitle}>Gráfico de Linha</Text>
-        <LineChart
-          data={chartData}
-          width={chartWidth}
-          height={chartHeight}
-          chartConfig={lineChartConfig}
-          bezier
-          style={styles.chart}
-          withInnerLines={false}
-          withOuterLines={false}
-          withVerticalLines={false}
-          withHorizontalLines={true}
-          withDots={true}
-          segments={4}
-        />
-      </View>
-
-      <View style={styles.chartContainer}>
-        <Text style={styles.chartTitle}>Gráfico de Barras</Text>
-        <BarChart
-          data={barChartData}
-          width={chartWidth}
-          height={chartHeight}
-          chartConfig={barChartConfig}
-          style={styles.chart}
-          showValuesOnTopOfBars
-          yAxisLabel=""
-          yAxisSuffix=""
-          segments={4}
-          fromZero
-          verticalLabelRotation={-15}
-        />
-      </View>
-
-      <View style={styles.historyContainer}>
-        <Text style={styles.historyTitle}>Histórico</Text>
-        {sensorData.map((data, index) => (
-          <View key={index} style={styles.historyItem}>
-            <Text style={styles.historyText}>{data.timestamp}</Text>
-            <Text style={styles.historyText}>{data.value.toFixed(2)}</Text>
-          </View>
-        ))}
-      </View>
-
-      <TouchableOpacity style={styles.updateButton} onPress={handleUpdate}>
-        <Text style={styles.updateButtonText}>Atualizar</Text>
+      <TouchableOpacity 
+        style={styles.alertButton}
+        onPress={() => setShowAlertModal(true)}
+      >
+        <Ionicons name="notifications-outline" size={24} color="#FFFFFF" />
+        <Text style={styles.alertButtonText}>Configurar Alertas</Text>
       </TouchableOpacity>
+
+      <Modal
+        visible={showAlertModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowAlertModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Configurar Alertas</Text>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setShowAlertModal(false)}
+              >
+                <Ionicons name="close" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalBody}>
+              <Text style={styles.modalSubtitle}>
+                Configure os valores para alertas de {sensor?.name}
+              </Text>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Valor de Alerta ({sensor?.lastReading.unit})</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ex: 50"
+                  placeholderTextColor="#8E8E93"
+                  keyboardType="numeric"
+                  value={alertThresholds.warning}
+                  onChangeText={(text) =>
+                    setAlertThresholds({ ...alertThresholds, warning: text })
+                  }
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Valor Crítico ({sensor?.lastReading.unit})</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ex: 75"
+                  placeholderTextColor="#8E8E93"
+                  keyboardType="numeric"
+                  value={alertThresholds.critical}
+                  onChangeText={(text) =>
+                    setAlertThresholds({ ...alertThresholds, critical: text })
+                  }
+                />
+              </View>
+
+              <View style={styles.modalFooter}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => setShowAlertModal(false)}
+                >
+                  <Text style={styles.cancelButtonText}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.saveButton]}
+                  onPress={handleSaveAlertConfig}
+                >
+                  <Text style={styles.saveButtonText}>Salvar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 };
@@ -228,114 +247,164 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000000',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     padding: 16,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#FFFFFF',
-  },
-  statusContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  statusLabel: {
-    fontSize: 18,
-    marginRight: 8,
-    color: '#FFFFFF',
-  },
-  statusValueContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statusIcon: {
-    marginRight: 8,
-  },
-  statusValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  currentValueContainer: {
     backgroundColor: '#1C1C1E',
+    borderBottomWidth: 1,
+    borderBottomColor: '#2C2C2E',
+  },
+  sensorName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  statusIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  infoCard: {
+    backgroundColor: '#1C1C1E',
+    borderRadius: 12,
     padding: 16,
-    borderRadius: 8,
-    marginBottom: 20,
+    margin: 16,
+    marginTop: 8,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  currentValueLabel: {
+  infoTitle: {
     fontSize: 16,
-    marginBottom: 8,
+    fontWeight: '600',
     color: '#FFFFFF',
+    marginBottom: 8,
   },
-  currentValue: {
+  infoValue: {
     fontSize: 32,
     fontWeight: 'bold',
+    color: '#007AFF',
+    marginBottom: 4,
   },
-  chartContainer: {
-    backgroundColor: '#1C1C1E',
-    padding: 16,
-    borderRadius: 10,
-    marginBottom: 20,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  chartTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#FFFFFF',
+  infoTimestamp: {
+    fontSize: 14,
+    color: '#8E8E93',
   },
   chart: {
     marginVertical: 8,
     borderRadius: 16,
   },
-  historyContainer: {
-    backgroundColor: '#1C1C1E',
-    padding: 16,
-    borderRadius: 10,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  historyTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
+  infoText: {
+    marginLeft: 8,
+    fontSize: 16,
     color: '#FFFFFF',
   },
-  historyItem: {
+  alertButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#007AFF',
+    margin: 16,
+    padding: 16,
+    borderRadius: 12,
+  },
+  alertButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  errorText: {
+    textAlign: 'center',
+    color: '#F44336',
+    fontSize: 16,
+    marginTop: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#1C1C1E',
+    borderRadius: 12,
+    width: '90%',
+    maxWidth: 500,
+  },
+  modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 8,
+    alignItems: 'center',
+    padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#2C2C2E',
   },
-  historyText: {
-    fontSize: 16,
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
     color: '#FFFFFF',
   },
-  updateButton: {
-    backgroundColor: '#007AFF',
-    padding: 16,
-    borderRadius: 8,
-    marginTop: 20,
-    alignItems: 'center',
+  closeButton: {
+    padding: 4,
   },
-  updateButtonText: {
-    color: 'white',
+  modalBody: {
+    padding: 16,
+  },
+  modalSubtitle: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    marginBottom: 16,
+  },
+  inputContainer: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: '#2C2C2E',
+    borderRadius: 8,
+    padding: 12,
+    color: '#FFFFFF',
+    fontSize: 16,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 16,
+  },
+  modalButton: {
+    padding: 12,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  cancelButton: {
+    backgroundColor: '#2C2C2E',
+  },
+  saveButton: {
+    backgroundColor: '#007AFF',
+  },
+  cancelButtonText: {
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
   },
-}); 
+  saveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});

@@ -7,7 +7,6 @@ import styled from 'styled-components/native';
 import { useAuth } from '../contexts/AuthContext';
 import theme from '../styles/theme';
 import { RootStackParamList } from '../types/navigation';
-import { Logo } from '../components/Logo';
 
 type LoginScreenProps = {
     navigation: NativeStackNavigationProp<RootStackParamList, 'Login'>;
@@ -42,7 +41,6 @@ const LoginScreen: React.FC = () => {
     return (
         <Container>
             <View style={styles.formContainer}>
-                <Logo />
                 <Text h3 style={styles.title}>Login</Text>
 
                 <Input

@@ -20,6 +20,10 @@ import { SensorsScreen } from '../screens/SensorsScreen';
 import { SensorDetailScreen } from '../screens/SensorDetailScreen';
 import { AccountSettingsScreen } from '../screens/AccountSettingsScreen';
 import UserManagementScreen from '../screens/UserManagementScreen';
+import { RiskAssessmentScreen } from '../screens/RiskAssessmentScreen';
+import { EnvironmentalDataScreen } from '../screens/EnvironmentalDataScreen';
+import { MonitoringHistoryScreen } from '../screens/MonitoringHistoryScreen';
+import { MitigationActionsScreen } from '../screens/MitigationActionsScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Drawer = createDrawerNavigator();
@@ -62,6 +66,46 @@ const DrawerNavigator = () => {
           title: 'Sensores',
           drawerIcon: ({ color, size }) => (
             <Ionicons name="analytics-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="EnvironmentalData"
+        component={EnvironmentalDataScreen}
+        options={{
+          title: 'Dados Ambientais',
+          drawerIcon: ({ color, size }) => (
+            <Ionicons name="leaf-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="RiskAssessment"
+        component={RiskAssessmentScreen}
+        options={{
+          title: 'Avaliação de Riscos',
+          drawerIcon: ({ color, size }) => (
+            <Ionicons name="warning-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="MonitoringHistory"
+        component={MonitoringHistoryScreen}
+        options={{
+          title: 'Histórico',
+          drawerIcon: ({ color, size }) => (
+            <Ionicons name="time-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="MitigationActions"
+        component={MitigationActionsScreen}
+        options={{
+          title: 'Ações de Mitigação',
+          drawerIcon: ({ color, size }) => (
+            <Ionicons name="construct-outline" size={size} color={color} />
           ),
         }}
       />

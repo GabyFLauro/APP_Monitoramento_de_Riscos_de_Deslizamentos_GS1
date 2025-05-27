@@ -28,4 +28,8 @@ export type RootStackParamList = {
     AccountSettings: undefined;
     DrawerNavigator: undefined;
     UserManagement: undefined;
+    RiskAssessment: undefined;
+    EnvironmentalData: undefined;
+    MonitoringHistory: undefined;
+    MitigationActions: undefined;
 };

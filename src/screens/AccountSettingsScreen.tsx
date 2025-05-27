@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Button, Input } from 'react-native-elements';
 import { useAuth } from '../contexts/AuthContext';
-import { Logo } from '../components/Logo';
+import { authService } from '../services/auth';
 
 export const AccountSettingsScreen = () => {
   const { user } = useAuth();
@@ -55,13 +55,13 @@ export const AccountSettingsScreen = () => {
 
     setLoading(true);
     try {
-      // TODO: Implementar atualização de senha
+      await authService.updateCurrentUserPassword(currentPassword, newPassword);
       Alert.alert('Sucesso', 'Senha atualizada com sucesso!');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível atualizar a senha');
+      Alert.alert('Erro', error instanceof Error ? error.message : 'Não foi possível atualizar a senha');
     } finally {
       setLoading(false);
     }
@@ -71,7 +71,6 @@ export const AccountSettingsScreen = () => {
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Configurações da Conta</Text>
-        <Logo />
       </View>
 
       <View style={styles.section}>

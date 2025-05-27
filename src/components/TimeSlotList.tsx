@@ -48,31 +48,31 @@ const TimeSlotList: React.FC<TimeSlotListProps> = ({
 };
 
 const Container = styled.View`
-  margin-bottom: 15px;
+  padding: 16px;
 `;
 
 const TimeGrid = styled.View`
   flex-direction: row;
   flex-wrap: wrap;
   justify-content: space-between;
-  gap: 6px;
+  gap: 12px; /* Adiciona espaçamento entre os itens */
 `;
 
-const TimeCard = styled(TouchableOpacity) <StyledProps>`
-  width: 23%;
-  padding: 8px;
-  border-radius: 6px;
-  background-color: ${(props: StyledProps) => props.isSelected ? theme.colors.primary + '20' : theme.colors.background};
-  border-width: 1px;
-  border-color: ${(props: StyledProps) => props.isSelected ? theme.colors.primary : theme.colors.border};
+const TimeCard = styled.TouchableOpacity<{ isSelected: boolean }>`
+  width: 48%;
+  padding: 12px 8px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  border: 1px solid ${props => props.isSelected ? '#007AFF' : '#E5E5EA'};
+  background-color: ${props => props.isSelected ? '#007AFF' : '#FFFFFF'};
   align-items: center;
   justify-content: center;
+  min-height: 44px; /* Altura mínima para touch targets */
 `;
 
-const TimeText = styled.Text<StyledProps>`
-  font-size: 12px;
+const TimeText = styled.Text<{ isSelected: boolean }>`
+  color: ${props => props.isSelected ? '#FFFFFF' : '#000000'};
+  font-size: 16px;
   font-weight: 500;
-  color: ${(props: StyledProps) => props.isSelected ? theme.colors.primary : theme.colors.text};
 `;
-
 export default TimeSlotList; 

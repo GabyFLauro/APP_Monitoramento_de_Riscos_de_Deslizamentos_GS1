@@ -1,6 +1,17 @@
-Nome: Gabriella Francisco de Lauro 
-RM: 99280
+Sprint 01 - Advanced Programming & Mobile Dev - 3ECA_FIAP_2025 - Twinovate_Challenge_Festo
 
-Foi implementado as funcionalidades de Agendar consulta com 3 médicos, onde cada médico tem  seu próprio id, nome, especialidade e uma imagem associada a eles.
-Então ao clicar em agendar consulta a tela é redirecionada a outra onde tem que selecionar o médico que fará a consulta, uma data válida para a consulta, um horário para a consulta e fazer uma descrição da consulta.
-Ao fazer isso e clicar em agendar consulta, a tela é redirecionada para a tela de início onde a consulta agendada aparecerá com as informações colocadas no agendamento.
+
+Luana Alves de Santana RM: 98546
+
+Kauhe Serpa Do Val RM: 552027
+
+Gabriella Francisco de Lauro RM: 99280
+
+Luis Felipe Machareth Bannwart RM: 99879
+
+Caio Yudi Ozaki Godinho RM: 552505
+
+Para rodar no emulador/simulador abrir o terminal e escrever o comando 'npm install' depois de instalar tudo escrever o comando 'npx expo start' e depois apertar o 'w'. Isso abrirá o emulador em uma aba de pesquisa.
+
+Se quiser testar em um simulador de celular no Visual Code Studio. Pesquise na aba de extensões no VSC Mobile View e instale. Ao instalar na aba lateral do VSC aparecerá um ícone de celular clique nele e selecione o modelo de celular desejado. Depois pegue a URL da aba de pesquisa aberta, copie e cole no local indicado após clicar em modelo. Com isso será simulado app no celular.
+

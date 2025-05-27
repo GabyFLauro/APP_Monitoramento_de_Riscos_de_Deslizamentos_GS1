@@ -7,7 +7,6 @@ import styled from 'styled-components/native';
 import { useAuth } from '../contexts/AuthContext';
 import theme from '../styles/theme';
 import { RootStackParamList } from '../types/navigation';
-import { Logo } from '../components/Logo';
 
 type RegisterScreenProps = {
     navigation: NativeStackNavigationProp<RootStackParamList, 'Register'>;
@@ -53,7 +52,6 @@ const RegisterScreen: React.FC = () => {
     return (
         <ScrollView style={styles.container}>
             <View style={styles.formContainer}>
-                <Logo />
                 <Text h3 style={styles.title}>Cadastro</Text>
 
                 <Input

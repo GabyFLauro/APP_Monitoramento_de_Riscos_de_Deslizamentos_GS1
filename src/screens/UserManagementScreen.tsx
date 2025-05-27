@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, FlatList, ActivityIndicator, Alert, TouchableOpacity, Modal, TextInput } from 'react-native';
 import { Text, ListItem, Avatar, Icon, Button } from 'react-native-elements';
 import { authService } from '../services/auth';
+import { useAuth } from '../contexts/AuthContext';
 import theme from '../styles/theme';
 
 interface User {
@@ -13,6 +14,7 @@ interface User {
 }
 
 const UserManagementScreen: React.FC = () => {
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -104,7 +106,7 @@ const UserManagementScreen: React.FC = () => {
               <ListItem.Subtitle style={styles.email}>{item.email}</ListItem.Subtitle>
               <ListItem.Subtitle style={styles.role}>{getRoleLabel(item.role)}</ListItem.Subtitle>
             </ListItem.Content>
-            {item.role === 'patient' && (
+            {item.id !== currentUser?.id && (
               <>
                 <TouchableOpacity onPress={() => openEditModal(item)} style={{ marginRight: 10 }}>
                   <Icon name="edit" color="#007AFF" />
