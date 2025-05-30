@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
+  LayoutChangeEvent,
 } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,10 +22,22 @@ interface MonitoringData {
 export const MonitoringHistoryScreen: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<'day' | 'week' | 'month'>('day');
   const [selectedMetric, setSelectedMetric] = useState<'soilMoisture' | 'slopeInclination' | 'rainfall' | 'riverLevel'>('soilMoisture');
+  
+  // Valor inicial seguro que será sobrescrito por onChartContainerLayout
+  const [chartWidth, setChartWidth] = useState(Dimensions.get('window').width); 
+
+  // Função para obter a largura real do contêiner do gráfico
+  const onChartContainerLayout = (event: LayoutChangeEvent) => {
+    const { width } = event.nativeEvent.layout;
+    // A largura disponível para o gráfico é a largura do chartContainer MENOS o padding horizontal.
+    // O estilo `chartContainer` tem `paddingHorizontal: 16`, então 16 * 2 = 32.
+    // Isso garante que o gráfico ocupe todo o espaço interno do seu contêiner.
+    setChartWidth(width - 32); 
+  };
 
   // Mock data - replace with actual data from API
   const mockData: MonitoringData[] = [
-    // Pluviômetro data (last 24 hours)
+    // Seus dados mock...
     {
       timestamp: new Date('2024-03-20T00:00:00'),
       soilMoisture: 75,
@@ -41,290 +54,279 @@ export const MonitoringHistoryScreen: React.FC = () => {
     },
     {
       timestamp: new Date('2024-03-20T04:00:00'),
-      soilMoisture: 82,
-      slopeInclination: 15,
-      rainfall: 12,
-      riverLevel: 2.4,
+      soilMoisture: 76,
+      slopeInclination: 16,
+      rainfall: 2,
+      riverLevel: 2.1,
     },
     {
       timestamp: new Date('2024-03-20T06:00:00'),
-      soilMoisture: 85,
-      slopeInclination: 15.2,
-      rainfall: 25,
-      riverLevel: 2.8,
+      soilMoisture: 79,
+      slopeInclination: 15,
+      rainfall: 10,
+      riverLevel: 2.3,
     },
     {
       timestamp: new Date('2024-03-20T08:00:00'),
-      soilMoisture: 88,
-      slopeInclination: 15.3,
-      rainfall: 35,
-      riverLevel: 3.2,
+      soilMoisture: 80,
+      slopeInclination: 16,
+      rainfall: 15,
+      riverLevel: 2.4,
     },
     {
       timestamp: new Date('2024-03-20T10:00:00'),
-      soilMoisture: 90,
-      slopeInclination: 15.5,
-      rainfall: 45,
-      riverLevel: 3.5,
+      soilMoisture: 82,
+      slopeInclination: 17,
+      rainfall: 8,
+      riverLevel: 2.5,
     },
     {
       timestamp: new Date('2024-03-20T12:00:00'),
-      soilMoisture: 92,
-      slopeInclination: 15.8,
-      rainfall: 55,
-      riverLevel: 3.8,
+      soilMoisture: 85,
+      slopeInclination: 18,
+      rainfall: 20,
+      riverLevel: 2.6,
     },
     {
       timestamp: new Date('2024-03-20T14:00:00'),
-      soilMoisture: 95,
-      slopeInclination: 16,
-      rainfall: 65,
-      riverLevel: 4.0,
+      soilMoisture: 83,
+      slopeInclination: 17,
+      rainfall: 12,
+      riverLevel: 2.5,
     },
     {
       timestamp: new Date('2024-03-20T16:00:00'),
-      soilMoisture: 93,
-      slopeInclination: 15.9,
-      rainfall: 55,
-      riverLevel: 3.9,
+      soilMoisture: 81,
+      slopeInclination: 16,
+      rainfall: 0,
+      riverLevel: 2.4,
     },
     {
       timestamp: new Date('2024-03-20T18:00:00'),
-      soilMoisture: 90,
-      slopeInclination: 15.7,
-      rainfall: 45,
-      riverLevel: 3.7,
+      soilMoisture: 79,
+      slopeInclination: 15,
+      rainfall: 0,
+      riverLevel: 2.3,
     },
     {
       timestamp: new Date('2024-03-20T20:00:00'),
-      soilMoisture: 87,
-      slopeInclination: 15.5,
-      rainfall: 35,
-      riverLevel: 3.5,
+      soilMoisture: 77,
+      slopeInclination: 15,
+      rainfall: 0,
+      riverLevel: 2.2,
     },
     {
       timestamp: new Date('2024-03-20T22:00:00'),
-      soilMoisture: 85,
-      slopeInclination: 15.3,
-      rainfall: 25,
-      riverLevel: 3.3,
+      soilMoisture: 76,
+      slopeInclination: 14,
+      rainfall: 0,
+      riverLevel: 2.1,
     },
     {
       timestamp: new Date('2024-03-21T00:00:00'),
-      soilMoisture: 82,
-      slopeInclination: 15.2,
-      rainfall: 15,
-      riverLevel: 3.1,
+      soilMoisture: 74,
+      slopeInclination: 14,
+      rainfall: 0,
+      riverLevel: 2.0,
     },
   ];
 
-  const getMetricLabel = (metric: string) => {
-    switch (metric) {
+  const getChartData = () => {
+    // Filter data based on selectedPeriod and selectedMetric
+    // For simplicity, using mockData directly, but you'd filter by timestamp
+
+    let dataValues: number[] = [];
+    let unit = '';
+
+    switch (selectedMetric) {
       case 'soilMoisture':
-        return 'Umidade do Solo (%)';
+        dataValues = mockData.map(data => data.soilMoisture);
+        unit = '%';
+        break;
       case 'slopeInclination':
-        return 'Inclinação do Solo (°)';
+        dataValues = mockData.map(data => data.slopeInclination);
+        unit = '°';
+        break;
       case 'rainfall':
-        return 'Precipitação (mm/h)';
+        dataValues = mockData.map(data => data.rainfall);
+        unit = 'mm';
+        break;
       case 'riverLevel':
-        return 'Nível do Rio (m)';
+        dataValues = mockData.map(data => data.riverLevel);
+        unit = 'm';
+        break;
       default:
-        return '';
+        break;
     }
-  };
 
-  const getMetricColor = (metric: string) => {
-    switch (metric) {
-      case 'soilMoisture':
-        return '#4CAF50'; // Verde
-      case 'slopeInclination':
-        return '#FF9800'; // Laranja
-      case 'rainfall':
-        return '#2196F3'; // Azul
-      case 'riverLevel':
-        return '#9C27B0'; // Roxo
-      default:
-        return '#007AFF';
+    // Mantemos a lógica de geração de labels vazios para garantir que a biblioteca não tente
+    // desenhar labels para cada ponto de dados se o número total de dados for muito alto.
+    // No entanto, o `labelCount` no `chartConfig` será a principal forma de controle.
+    const maxLabels = 10; 
+    const dataLength = mockData.length;
+    const labels: string[] = [];
+    // O `step` agora ajuda a decidir quais pontos DEVERIAM ter um label se não fosse o `labelCount`
+    // (ou se `labelCount` for ignorado por alguma razão pela biblioteca em certas condições).
+    const step = Math.ceil(dataLength / maxLabels); 
+
+    for (let i = 0; i < dataLength; i++) {
+      const date = new Date(mockData[i].timestamp);
+      if (i === 0 || i === dataLength - 1 || (i > 0 && i < dataLength - 1 && i % step === 0)) {
+        labels.push(`${date.getHours()}h`);
+      } else {
+        labels.push('');
+      }
     }
-  };
 
-  const chartData = {
-    labels: mockData.map(d => new Date(d.timestamp).toLocaleTimeString()),
-    datasets: [
-      {
-        data: mockData.map(d => d[selectedMetric]),
-        color: (opacity = 1) => getMetricColor(selectedMetric),
-        strokeWidth: 2,
-      },
-    ],
-  };
-
-  const getMetricStats = () => {
-    const values = mockData.map(d => d[selectedMetric]);
-    const sum = values.reduce((acc, curr) => acc + curr, 0);
-    const avg = sum / values.length;
-    const max = Math.max(...values);
-    const min = Math.min(...values);
 
     return {
-      average: avg.toFixed(1),
-      maximum: max.toFixed(1),
-      minimum: min.toFixed(1),
+      labels: labels,
+      datasets: [
+        {
+          data: dataValues,
+          color: (opacity = 1) => `rgba(0, 122, 255, ${opacity})`, // Example blue color
+          strokeWidth: 2,
+        },
+      ],
+      unit: unit,
     };
   };
 
-  const stats = getMetricStats();
+  const chartData = getChartData();
+
+  const chartConfig = {
+    backgroundColor: '#1C1C1E',
+    backgroundGradientFrom: '#1C1C1E',
+    backgroundGradientTo: '#1C1C1E',
+    decimalPlaces: 0, // optional, defaults to 2dp
+    color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+    labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+    style: {
+      borderRadius: 16,
+    },
+    propsForDots: {
+      r: '4',
+      strokeWidth: '2',
+      stroke: '#007AFF',
+    },
+    yAxisLabel: '', // Example, adjust as needed
+    yAxisSuffix: chartData.unit,
+    yAxisInterval: 1, // optional, default 1
+    
+    // NOVO: Adicionado para controlar o número de rótulos exibidos no eixo X
+    // Isso forçará a biblioteca a espaçar os rótulos de forma mais compacta
+    labelCount: 5, // Tente 5, se ainda estiver muito grande, diminua para 4 ou 3
+  };
+
+  const getMetricTitle = (metric: 'soilMoisture' | 'slopeInclination' | 'rainfall' | 'riverLevel') => {
+    switch (metric) {
+      case 'soilMoisture': return 'Umidade do Solo';
+      case 'slopeInclination': return 'Inclinação da Encosta';
+      case 'rainfall': return 'Volume de Chuva';
+      case 'riverLevel': return 'Nível do Rio';
+      default: return '';
+    }
+  };
+
+  const getStats = (metric: 'soilMoisture' | 'slopeInclination' | 'rainfall' | 'riverLevel') => {
+    const dataValues = mockData.map(data => data[metric]);
+    if (dataValues.length === 0) {
+      return { min: 0, max: 0, avg: 0 };
+    }
+    const min = Math.min(...dataValues);
+    const max = Math.max(...dataValues);
+    const sum = dataValues.reduce((a, b) => a + b, 0);
+    const avg = sum / dataValues.length;
+    return { min, max, avg: parseFloat(avg.toFixed(1)) };
+  };
+
+  const stats = getStats(selectedMetric);
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Histórico de Monitoramento</Text>
         <TouchableOpacity style={styles.filterButton}>
-          <Ionicons name="filter-outline" size={24} color="#007AFF" />
+          <Ionicons name="options-outline" size={24} color="#007AFF" />
         </TouchableOpacity>
       </View>
 
       <View style={styles.periodSelector}>
         <TouchableOpacity
-          style={[
-            styles.periodButton,
-            selectedPeriod === 'day' && styles.selectedPeriod,
-          ]}
+          style={[styles.periodButton, selectedPeriod === 'day' && styles.selectedPeriod]}
           onPress={() => setSelectedPeriod('day')}
         >
-          <Text style={[styles.periodText, selectedPeriod === 'day' && styles.selectedPeriodText]}>
-            Dia
-          </Text>
+          <Text style={[styles.periodText, selectedPeriod === 'day' && styles.selectedPeriodText]}>Dia</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[
-            styles.periodButton,
-            selectedPeriod === 'week' && styles.selectedPeriod,
-          ]}
+          style={[styles.periodButton, selectedPeriod === 'week' && styles.selectedPeriod]}
           onPress={() => setSelectedPeriod('week')}
         >
-          <Text style={[styles.periodText, selectedPeriod === 'week' && styles.selectedPeriodText]}>
-            Semana
-          </Text>
+          <Text style={[styles.periodText, selectedPeriod === 'week' && styles.selectedPeriodText]}>Semana</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[
-            styles.periodButton,
-            selectedPeriod === 'month' && styles.selectedPeriod,
-          ]}
+          style={[styles.periodButton, selectedPeriod === 'month' && styles.selectedPeriod]}
           onPress={() => setSelectedPeriod('month')}
         >
-          <Text style={[styles.periodText, selectedPeriod === 'month' && styles.selectedPeriodText]}>
-            Mês
-          </Text>
+          <Text style={[styles.periodText, selectedPeriod === 'month' && styles.selectedPeriodText]}>Mês</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.metricSelector}>
         <TouchableOpacity
-          style={[
-            styles.metricButton,
-            selectedMetric === 'soilMoisture' && styles.selectedMetric,
-          ]}
+          style={[styles.metricButton, selectedMetric === 'soilMoisture' && styles.selectedMetric]}
           onPress={() => setSelectedMetric('soilMoisture')}
         >
-          <Text style={[styles.metricText, selectedMetric === 'soilMoisture' && styles.selectedMetricText]}>
-            Umidade
-          </Text>
+          <Text style={[styles.metricText, selectedMetric === 'soilMoisture' && styles.selectedMetricText]}>Solo</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[
-            styles.metricButton,
-            selectedMetric === 'slopeInclination' && styles.selectedMetric,
-          ]}
+          style={[styles.metricButton, selectedMetric === 'slopeInclination' && styles.selectedMetric]}
           onPress={() => setSelectedMetric('slopeInclination')}
         >
-          <Text style={[styles.metricText, selectedMetric === 'slopeInclination' && styles.selectedMetricText]}>
-            Inclinação
-          </Text>
+          <Text style={[styles.metricText, selectedMetric === 'slopeInclination' && styles.selectedMetricText]}>Inclinação</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[
-            styles.metricButton,
-            selectedMetric === 'rainfall' && styles.selectedMetric,
-          ]}
+          style={[styles.metricButton, selectedMetric === 'rainfall' && styles.selectedMetric]}
           onPress={() => setSelectedMetric('rainfall')}
         >
-          <Text style={[styles.metricText, selectedMetric === 'rainfall' && styles.selectedMetricText]}>
-            Chuva
-          </Text>
+          <Text style={[styles.metricText, selectedMetric === 'rainfall' && styles.selectedMetricText]}>Chuva</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[
-            styles.metricButton,
-            selectedMetric === 'riverLevel' && styles.selectedMetric,
-          ]}
+          style={[styles.metricButton, selectedMetric === 'riverLevel' && styles.selectedMetric]}
           onPress={() => setSelectedMetric('riverLevel')}
         >
-          <Text style={[styles.metricText, selectedMetric === 'riverLevel' && styles.selectedMetricText]}>
-            Rio
-          </Text>
+          <Text style={[styles.metricText, selectedMetric === 'riverLevel' && styles.selectedMetricText]}>Rio</Text>
         </TouchableOpacity>
       </View>
 
-      <View style={styles.chartContainer}>
-        <Text style={styles.chartTitle}>{getMetricLabel(selectedMetric)}</Text>
-        <LineChart
-          data={chartData}
-          width={Dimensions.get('window').width - 32}
-          height={220}
-          chartConfig={{
-            backgroundColor: '#000000',
-            backgroundGradientFrom: '#000000',
-            backgroundGradientTo: '#000000',
-            decimalPlaces: 1,
-            color: (opacity = 1) => getMetricColor(selectedMetric),
-            labelColor: (opacity = 1) => '#FFFFFF',
-            style: {
-              borderRadius: 16,
-            },
-            propsForDots: {
-              r: '4',
-              strokeWidth: '2',
-              stroke: getMetricColor(selectedMetric),
-            },
-            propsForBackgroundLines: {
-              stroke: '#2C2C2E',
-              strokeWidth: 1,
-            },
-            propsForLabels: {
-              fontSize: 12,
-              fill: '#FFFFFF',
-            },
-          }}
-          bezier
-          style={styles.chart}
-        />
+      {/* Usando onLayout no chartContainer para pegar a largura disponível */}
+      <View style={styles.chartContainer} onLayout={onChartContainerLayout}>
+        <Text style={styles.chartTitle}>{getMetricTitle(selectedMetric)}</Text>
+        {chartWidth > 0 && ( // Renderiza o gráfico apenas se a largura for maior que 0
+          <LineChart
+            data={chartData}
+            width={chartWidth} // Usa a largura calculada dinamicamente
+            height={220}
+            chartConfig={chartConfig}
+            bezier
+            style={styles.chart}
+          />
+        )}
       </View>
 
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
+          <Text style={styles.statLabel}>Mín.</Text>
+          <Text style={styles.statValue}>{stats.min}{chartData.unit}</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={styles.statLabel}>Máx.</Text>
+          <Text style={styles.statValue}>{stats.max}{chartData.unit}</Text>
+        </View>
+        <View style={styles.statCard}>
           <Text style={styles.statLabel}>Média</Text>
-          <Text style={styles.statValue}>{stats.average}</Text>
+          <Text style={styles.statValue}>{stats.avg}{chartData.unit}</Text>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Máximo</Text>
-          <Text style={styles.statValue}>{stats.maximum}</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Mínimo</Text>
-          <Text style={styles.statValue}>{stats.minimum}</Text>
-        </View>
-      </View>
-
-      <View style={styles.analysisContainer}>
-        <Text style={styles.analysisTitle}>Análise</Text>
-        <Text style={styles.analysisText}>
-          {selectedMetric === 'soilMoisture' && 'A umidade do solo aumentou significativamente durante o período de chuva, atingindo níveis críticos que podem indicar risco de deslizamento.'}
-          {selectedMetric === 'slopeInclination' && 'A inclinação do solo apresentou pequenas variações, mas permanece dentro dos limites seguros. Monitoramento contínuo é necessário.'}
-          {selectedMetric === 'rainfall' && 'Precipitação intensa registrada entre 10h e 14h, com pico de 65mm/h. Risco de alagamento e deslizamento.'}
-          {selectedMetric === 'riverLevel' && 'Nível do rio subiu 1.9m em 24h devido à chuva intensa. Atingiu nível de alerta às 14h.'}
-        </Text>
       </View>
     </ScrollView>
   );
@@ -399,7 +401,8 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   chartContainer: {
-    padding: 16,
+    paddingHorizontal: 16, // Importante para o cálculo da largura interna
+    paddingVertical: 16,
   },
   chartTitle: {
     fontSize: 16,
@@ -431,29 +434,7 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  analysisContainer: {
-    padding: 16,
-    backgroundColor: '#1C1C1E',
-    margin: 16,
-    borderRadius: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  analysisTitle: {
-    fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
-    marginBottom: 8,
   },
-  analysisText: {
-    fontSize: 14,
-    color: '#FFFFFF',
-    lineHeight: 20,
-  },
-}); 
+});

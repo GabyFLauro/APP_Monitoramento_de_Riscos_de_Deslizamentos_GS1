@@ -9,6 +9,7 @@ import {
   Modal,
   TextInput,
   Alert,
+  LayoutChangeEvent, // Importação adicionada
 } from 'react-native';
 import { useSensors } from '../contexts/SensorContext';
 import { RouteProp, useRoute } from '@react-navigation/native';
@@ -27,6 +28,14 @@ export const SensorDetailScreen: React.FC = () => {
     warning: '',
     critical: '',
   });
+  const [chartWidth, setChartWidth] = useState(Dimensions.get('window').width - 32); // Valor inicial
+
+  // Função para obter a largura real do 'chartCard'
+  const onChartCardLayout = (event: LayoutChangeEvent) => {
+    const { width } = event.nativeEvent.layout;
+    // O styles.chartCard tem padding: 16 (total de 32 horizontal)
+    setChartWidth(width - 32); // Subtrai o padding horizontal do card
+  };
 
   if (!sensor) {
     return (
@@ -41,200 +50,160 @@ export const SensorDetailScreen: React.FC = () => {
     labels: ['12h', '10h', '8h', '6h', '4h', '2h', 'Agora'],
     datasets: [
       {
-        data: [65, 70, 68, 72, 75, 73, sensor.lastReading.value],
+        data: [65, 70, 68, 72, 75, 73, 78], // Example values for soil moisture
+        color: (opacity = 1) => `rgba(0, 122, 255, ${opacity})`, // Blue for soil moisture
+        strokeWidth: 2,
       },
     ],
   };
 
-  const getRiskLevel = () => {
-    const assessment = riskAssessments.find(
-      (r) =>
-        r.location.latitude === sensor.location.latitude &&
-        r.location.longitude === sensor.location.longitude
-    );
-    return assessment?.riskLevel || 'low';
+  const chartConfig = {
+    backgroundColor: '#1C1C1E',
+    backgroundGradientFrom: '#1C1C1E',
+    backgroundGradientTo: '#1C1C1E',
+    decimalPlaces: 0, // optional, defaults to 2dp
+    color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+    labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+    style: {
+      borderRadius: 16,
+    },
+    propsForDots: {
+      r: '4',
+      strokeWidth: '2',
+      stroke: '#007AFF',
+    },
+    // Make sure yAxisLabel and yAxisSuffix are appropriate for the metric
+    yAxisLabel: '',
+    yAxisSuffix: '%',
+    yAxisInterval: 1,
   };
 
-  const getRiskColor = (riskLevel: string) => {
-    switch (riskLevel) {
-      case 'low':
-        return '#4CAF50';
-      case 'medium':
-        return '#FFC107';
-      case 'high':
-        return '#FF9800';
-      case 'critical':
-        return '#F44336';
-      default:
-        return '#9E9E9E';
-    }
-  };
+  const handleSaveAlertThresholds = () => {
+    const warning = parseFloat(alertThresholds.warning);
+    const critical = parseFloat(alertThresholds.critical);
 
-  const handleSaveAlertConfig = () => {
-    const warningValue = parseFloat(alertThresholds.warning);
-    const criticalValue = parseFloat(alertThresholds.critical);
-
-    if (isNaN(warningValue) || isNaN(criticalValue)) {
-      Alert.alert('Erro', 'Por favor, insira valores válidos para os alertas');
+    if (isNaN(warning) || isNaN(critical)) {
+      Alert.alert('Erro', 'Por favor, insira valores numéricos válidos para os limites.');
       return;
     }
 
-    if (warningValue >= criticalValue) {
-      Alert.alert('Erro', 'O valor de alerta deve ser menor que o valor crítico');
+    if (warning >= critical) {
+      Alert.alert('Erro', 'O limite de aviso deve ser menor que o limite crítico.');
       return;
     }
 
-    // TODO: Implement actual alert configuration saving
-    Alert.alert(
-      'Sucesso',
-      'Configurações de alerta salvas com sucesso',
-      [{ text: 'OK', onPress: () => setShowAlertModal(false) }]
-    );
+    // Aqui você enviaria os limites atualizados para o seu backend ou contexto
+    Alert.alert('Sucesso', `Limites de alerta para ${sensor.name} atualizados:\nAviso: ${warning}\nCrítico: ${critical}`);
+    setShowAlertModal(false);
   };
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.sensorName}>{sensor.name}</Text>
-        <View
-          style={[
-            styles.statusIndicator,
-            { backgroundColor: getRiskColor(getRiskLevel()) },
-          ]}
-        />
+        <Text style={styles.title}>{sensor.name}</Text>
+        <TouchableOpacity style={styles.backButton} onPress={() => { /* navigation.goBack() */ }}>
+          <Ionicons name="arrow-back" size={24} color="#007AFF" />
+        </TouchableOpacity>
       </View>
 
-      <View style={styles.infoCard}>
-        <Text style={styles.infoTitle}>Última Leitura</Text>
-        <Text style={styles.infoValue}>
-          {sensor.lastReading.value} {sensor.lastReading.unit}
-        </Text>
-        <Text style={styles.infoTimestamp}>
-          {new Date(sensor.lastReading.timestamp).toLocaleString()}
-        </Text>
-      </View>
-
-      <View style={styles.infoCard}>
-        <Text style={styles.infoTitle}>Histórico</Text>
-        <LineChart
-          data={historicalData}
-          width={Dimensions.get('window').width - 32}
-          height={220}
-          chartConfig={{
-            backgroundColor: '#1C1C1E',
-            backgroundGradientFrom: '#1C1C1E',
-            backgroundGradientTo: '#1C1C1E',
-            decimalPlaces: 0,
-            color: (opacity = 1) => `rgba(0, 122, 255, ${opacity})`,
-            labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-            style: {
-              borderRadius: 16,
-            },
-            propsForDots: {
-              r: '6',
-              strokeWidth: '2',
-              stroke: '#007AFF'
-            }
-          }}
-          bezier
-          style={styles.chart}
-        />
-      </View>
-
-      <View style={styles.infoCard}>
-        <Text style={styles.infoTitle}>Informações do Sensor</Text>
-        <View style={styles.infoRow}>
-          <Ionicons name="battery-charging-outline" size={20} color="#4CAF50" />
-          <Text style={styles.infoText}>Bateria: {sensor.batteryLevel}%</Text>
+      <View style={styles.statusCard}>
+        <View style={styles.statusHeader}>
+          <Text style={styles.cardTitle}>Status Atual</Text>
+          <View style={styles.statusContainer}>
+            <View style={[styles.statusDot, { backgroundColor: sensor.status === 'active' ? '#4CAF50' : sensor.status === 'warning' ? '#FFC107' : '#F44336' }]} />
+            <Text style={styles.statusText}>
+              {sensor.status === 'active' ? 'Ativo' : sensor.status === 'warning' ? 'Aviso' : 'Crítico'}
+            </Text>
+          </View>
         </View>
-        <View style={styles.infoRow}>
-          <Ionicons name="wifi-outline" size={20} color="#4CAF50" />
-          <Text style={styles.infoText}>
-            Sinal: {sensor.signalStrength}%
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Última Leitura:</Text>
+          <Text style={styles.detailValue}>
+            {sensor.lastReading.value} {sensor.lastReading.unit} ({new Date(sensor.lastReading.timestamp).toLocaleString()})
           </Text>
         </View>
-        <View style={styles.infoRow}>
-          <Ionicons name="location-outline" size={20} color="#4CAF50" />
-          <Text style={styles.infoText}>
-            Lat: {sensor.location.latitude.toFixed(4)}, Long:{' '}
-            {sensor.location.longitude.toFixed(4)}
-          </Text>
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Nível da Bateria:</Text>
+          <Text style={styles.detailValue}>{sensor.batteryLevel}%</Text>
+        </View>
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Força do Sinal:</Text>
+          <Text style={styles.detailValue}>{sensor.signalStrength} dBm</Text>
         </View>
       </View>
 
-      <TouchableOpacity 
-        style={styles.alertButton}
-        onPress={() => setShowAlertModal(true)}
-      >
-        <Ionicons name="notifications-outline" size={24} color="#FFFFFF" />
-        <Text style={styles.alertButtonText}>Configurar Alertas</Text>
-      </TouchableOpacity>
+      {/* Usando onLayout no chartCard para pegar a largura disponível */}
+      <View style={styles.chartCard} onLayout={onChartCardLayout}>
+        <Text style={styles.cardTitle}>Histórico de Dados</Text>
+        {chartWidth > 0 && ( // Renderiza o gráfico apenas se a largura for maior que 0
+          <LineChart
+            data={historicalData}
+            width={chartWidth} // Usa a largura calculada dinamicamente
+            height={220}
+            chartConfig={chartConfig}
+            bezier
+            style={styles.chart}
+          />
+        )}
+      </View>
+
+      <View style={styles.alertCard}>
+        <Text style={styles.cardTitle}>Limites de Alerta</Text>
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Aviso:</Text>
+          <Text style={styles.detailValue}>70%</Text>
+        </View>
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Crítico:</Text>
+          <Text style={styles.detailValue}>85%</Text>
+        </View>
+        <TouchableOpacity style={styles.setAlertButton} onPress={() => setShowAlertModal(true)}>
+          <Ionicons name="settings-outline" size={20} color="#FFFFFF" />
+          <Text style={styles.setAlertButtonText}>Definir Limites</Text>
+        </TouchableOpacity>
+      </View>
 
       <Modal
-        visible={showAlertModal}
-        transparent={true}
         animationType="slide"
+        transparent={true}
+        visible={showAlertModal}
         onRequestClose={() => setShowAlertModal(false)}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Configurar Alertas</Text>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => setShowAlertModal(false)}
-              >
-                <Ionicons name="close" size={24} color="#FFFFFF" />
+              <Text style={styles.modalTitle}>Definir Limites de Alerta</Text>
+              <TouchableOpacity onPress={() => setShowAlertModal(false)} style={styles.closeButton}>
+                <Ionicons name="close-circle-outline" size={28} color="#8E8E93" />
               </TouchableOpacity>
             </View>
-
             <View style={styles.modalBody}>
-              <Text style={styles.modalSubtitle}>
-                Configure os valores para alertas de {sensor?.name}
-              </Text>
-
+              <Text style={styles.modalSubtitle}>Insira os novos limites para {sensor.name}:</Text>
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Valor de Alerta ({sensor?.lastReading.unit})</Text>
+                <Text style={styles.inputLabel}>Limite de Aviso (%)</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Ex: 50"
-                  placeholderTextColor="#8E8E93"
                   keyboardType="numeric"
+                  placeholder="Ex: 70"
+                  placeholderTextColor="#8E8E93"
                   value={alertThresholds.warning}
-                  onChangeText={(text) =>
-                    setAlertThresholds({ ...alertThresholds, warning: text })
-                  }
+                  onChangeText={(text) => setAlertThresholds({ ...alertThresholds, warning: text })}
                 />
               </View>
-
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Valor Crítico ({sensor?.lastReading.unit})</Text>
+                <Text style={styles.inputLabel}>Limite Crítico (%)</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Ex: 75"
-                  placeholderTextColor="#8E8E93"
                   keyboardType="numeric"
+                  placeholder="Ex: 85"
+                  placeholderTextColor="#8E8E93"
                   value={alertThresholds.critical}
-                  onChangeText={(text) =>
-                    setAlertThresholds({ ...alertThresholds, critical: text })
-                  }
+                  onChangeText={(text) => setAlertThresholds({ ...alertThresholds, critical: text })}
                 />
               </View>
-
-              <View style={styles.modalFooter}>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.cancelButton]}
-                  onPress={() => setShowAlertModal(false)}
-                >
-                  <Text style={styles.cancelButtonText}>Cancelar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.saveButton]}
-                  onPress={handleSaveAlertConfig}
-                >
-                  <Text style={styles.saveButtonText}>Salvar</Text>
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity style={styles.saveButton} onPress={handleSaveAlertThresholds}>
+                <Text style={styles.saveButtonText}>Salvar Limites</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -257,78 +226,102 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#2C2C2E',
   },
-  sensorName: {
+  title: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
-  statusIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  infoCard: {
-    backgroundColor: '#1C1C1E',
-    borderRadius: 12,
-    padding: 16,
-    margin: 16,
-    marginTop: 8,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  infoTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 8,
-  },
-  infoValue: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#007AFF',
-    marginBottom: 4,
-  },
-  infoTimestamp: {
-    fontSize: 14,
-    color: '#8E8E93',
-  },
-  chart: {
-    marginVertical: 8,
-    borderRadius: 16,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  infoText: {
-    marginLeft: 8,
-    fontSize: 16,
-    color: '#FFFFFF',
-  },
-  alertButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#007AFF',
-    margin: 16,
-    padding: 16,
-    borderRadius: 12,
-  },
-  alertButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
+  backButton: {
+    padding: 8,
   },
   errorText: {
     textAlign: 'center',
     color: '#F44336',
     fontSize: 16,
     marginTop: 16,
+  },
+  statusCard: {
+    backgroundColor: '#1C1C1E',
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginTop: 16,
+    padding: 16,
+    marginBottom: 16,
+  },
+  chartCard: {
+    backgroundColor: '#1C1C1E',
+    borderRadius: 12,
+    marginHorizontal: 16,
+    padding: 16, // Este padding é importante para o cálculo da largura
+    marginBottom: 16,
+  },
+  alertCard: {
+    backgroundColor: '#1C1C1E',
+    borderRadius: 12,
+    marginHorizontal: 16,
+    padding: 16,
+    marginBottom: 16,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 12,
+  },
+  statusHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 8,
+  },
+  statusText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#FFFFFF',
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  detailLabel: {
+    fontSize: 14,
+    color: '#8E8E93',
+  },
+  detailValue: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    fontWeight: '500',
+  },
+  chart: {
+    marginVertical: 8,
+    borderRadius: 16,
+  },
+  setAlertButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#007AFF',
+    borderRadius: 8,
+    paddingVertical: 10,
+    marginTop: 10,
+  },
+  setAlertButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   modalOverlay: {
     flex: 1,
@@ -381,30 +374,16 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
   },
-  modalFooter: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 16,
-  },
-  modalButton: {
-    padding: 12,
-    borderRadius: 8,
-    marginLeft: 8,
-  },
-  cancelButton: {
-    backgroundColor: '#2C2C2E',
-  },
   saveButton: {
     backgroundColor: '#007AFF',
-  },
-  cancelButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 20,
   },
   saveButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
   },
 });
