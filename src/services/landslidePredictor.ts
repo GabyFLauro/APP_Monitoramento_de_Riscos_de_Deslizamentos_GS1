@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LandslideRiskAssessment, SoilMoistureSensor, InclinometerSensor } from '../types/sensors';
+import { EnvironmentalData } from './environmentalData';
 
 const STORAGE_KEYS = {
   LANDSLIDE_ASSESSMENTS: '@landslide_assessments',
@@ -31,60 +32,16 @@ class LandslidePredictor {
     }
   }
 
-  calculateRiskScore(soilMoisture: number, inclination: number): number {
-    // Algoritmo de cálculo de risco baseado em umidade do solo e inclinação
-    const moistureWeight = 0.6;
-    const inclinationWeight = 0.4;
-
-    // Normalizar valores (0-100)
-    const normalizedMoisture = Math.min(soilMoisture / 100, 1);
-    const normalizedInclination = Math.min(inclination / 45, 1); // 45 graus como máximo crítico
-
-    // Calcular score (0-100)
-    const riskScore = (
-      (normalizedMoisture * moistureWeight) +
-      (normalizedInclination * inclinationWeight)
-    ) * 100;
-
-    return Math.round(riskScore);
-  }
-
-  determineRiskLevel(riskScore: number): 'low' | 'medium' | 'high' | 'critical' {
-    if (riskScore >= 80) return 'critical';
-    if (riskScore >= 60) return 'high';
-    if (riskScore >= 40) return 'medium';
-    return 'low';
-  }
-
-  predictFutureRisk(
-    currentScore: number,
-    historicalTrend: number[]
-  ): LandslideRiskAssessment['predictions'] {
-    // Análise de tendência simples
-    const trend = historicalTrend.length > 1 
-      ? historicalTrend[historicalTrend.length - 1] - historicalTrend[0]
-      : 0;
-
-    const predict24h = Math.max(0, Math.min(100, currentScore + (trend * 0.5)));
-    const predict48h = Math.max(0, Math.min(100, currentScore + (trend * 1.0)));
-    const predict72h = Math.max(0, Math.min(100, currentScore + (trend * 1.5)));
-
-    return {
-      next24h: this.determineRiskLevel(predict24h),
-      next48h: this.determineRiskLevel(predict48h),
-      next72h: this.determineRiskLevel(predict72h),
-    };
-  }
-
-  async assessLandslideRisk(
-    soilMoistureSensor: SoilMoistureSensor,
-    inclinometerSensor: InclinometerSensor,
-    location: { latitude: number; longitude: number; address: string }
+  async assessRiskFromEnvironmentalData(
+    environmentalData: EnvironmentalData,
+    location: { latitude: number; longitude: number; name: string }
   ): Promise<LandslideRiskAssessment> {
-    const soilMoisture = soilMoistureSensor.lastReading.value;
-    const inclination = inclinometerSensor.lastReading.value;
+    const soilMoisture = parseFloat(environmentalData.soilMoisture);
+    const inclination = parseFloat(environmentalData.slopeInclination);
+    const rainfall = parseFloat(environmentalData.rainfall);
+    const riverLevel = parseFloat(environmentalData.riverLevel);
     
-    const riskScore = this.calculateRiskScore(soilMoisture, inclination);
+    const riskScore = this.calculateRiskScore(soilMoisture, inclination, rainfall, riverLevel);
     const riskLevel = this.determineRiskLevel(riskScore);
 
     // Buscar dados históricos para previsão
@@ -98,7 +55,7 @@ class LandslidePredictor {
       inclination,
       riskLevel,
       riskScore,
-      timestamp: new Date().toISOString(),
+      timestamp: environmentalData.timestamp,
       predictions,
     };
 
@@ -108,6 +65,73 @@ class LandslidePredictor {
     await this.saveHistoricalData(location, riskScore);
 
     return assessment;
+  }
+
+  private calculateRiskScore(
+    soilMoisture: number,
+    inclination: number,
+    rainfall: number,
+    riverLevel: number
+  ): number {
+    // Fatores de peso para cada parâmetro
+    const weights = {
+      soilMoisture: 0.3,
+      inclination: 0.3,
+      rainfall: 0.2,
+      riverLevel: 0.2,
+    };
+
+    // Normalização dos valores para escala 0-100
+    const normalizedSoilMoisture = Math.min(soilMoisture, 100);
+    const normalizedInclination = Math.min((inclination / 45) * 100, 100);
+    const normalizedRainfall = Math.min((rainfall / 50) * 100, 100);
+    const normalizedRiverLevel = Math.min((riverLevel / 3) * 100, 100);
+
+    // Cálculo do score ponderado
+    const score =
+      normalizedSoilMoisture * weights.soilMoisture +
+      normalizedInclination * weights.inclination +
+      normalizedRainfall * weights.rainfall +
+      normalizedRiverLevel * weights.riverLevel;
+
+    return Math.round(score);
+  }
+
+  private determineRiskLevel(riskScore: number): 'low' | 'medium' | 'high' | 'critical' {
+    if (riskScore < 30) return 'low';
+    if (riskScore < 50) return 'medium';
+    if (riskScore < 70) return 'high';
+    return 'critical';
+  }
+
+  private predictFutureRisk(
+    currentScore: number,
+    historicalData: number[]
+  ): {
+    next24h: 'low' | 'medium' | 'high' | 'critical';
+    next48h: 'low' | 'medium' | 'high' | 'critical';
+    next72h: 'low' | 'medium' | 'high' | 'critical';
+  } {
+    // Implementação simplificada da previsão
+    // Em um cenário real, isso usaria algoritmos mais sofisticados
+    const trend = this.calculateTrend(historicalData);
+    
+    const next24h = this.determineRiskLevel(currentScore + trend * 1);
+    const next48h = this.determineRiskLevel(currentScore + trend * 2);
+    const next72h = this.determineRiskLevel(currentScore + trend * 3);
+
+    return { next24h, next48h, next72h };
+  }
+
+  private calculateTrend(historicalData: number[]): number {
+    if (historicalData.length < 2) return 0;
+
+    const recentData = historicalData.slice(-5); // Usar os últimos 5 pontos
+    let sum = 0;
+    for (let i = 1; i < recentData.length; i++) {
+      sum += recentData[i] - recentData[i - 1];
+    }
+    return sum / (recentData.length - 1);
   }
 
   private async getHistoricalData(location: { latitude: number; longitude: number }): Promise<number[]> {
@@ -176,7 +200,7 @@ class LandslidePredictor {
     if (assessment.riskLevel === 'critical' || assessment.riskLevel === 'high') {
       return {
         type: assessment.riskLevel === 'critical' ? 'critical' : 'warning',
-        message: `Risco ${assessment.riskLevel === 'critical' ? 'CRÍTICO' : 'ALTO'} de deslizamento detectado em ${assessment.location.address}. Umidade do solo: ${assessment.soilMoisture}%, Inclinação: ${assessment.inclination}°`,
+        message: `Risco ${assessment.riskLevel === 'critical' ? 'CRÍTICO' : 'ALTO'} de deslizamento detectado em ${assessment.location.name}. Umidade do solo: ${assessment.soilMoisture}%, Inclinação: ${assessment.inclination}°`,
         timestamp: new Date().toISOString(),
       };
     }

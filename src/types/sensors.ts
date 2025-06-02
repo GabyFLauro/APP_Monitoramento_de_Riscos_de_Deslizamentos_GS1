@@ -65,7 +65,7 @@ export interface LandslideRiskAssessment {
   location: {
     latitude: number;
     longitude: number;
-    address: string;
+    name: string;
   };
   soilMoisture: number;
   inclination: number;
@@ -78,6 +78,7 @@ export interface LandslideRiskAssessment {
     next72h: 'low' | 'medium' | 'high' | 'critical';
   };
 }
+
 export interface Location {
   latitude: number;
   longitude: number;

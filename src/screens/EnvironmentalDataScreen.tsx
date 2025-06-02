@@ -7,19 +7,11 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
-interface EnvironmentalData {
-  soilMoisture: string;
-  slopeInclination: string;
-  rainfall: string;
-  riverLevel: string;
-  temperature: string;
-  humidity: string;
-  windSpeed: string;
-  notes: string;
-}
+import { environmentalDataService, EnvironmentalData } from '../services/environmentalData';
+import { landslidePredictor } from '../services/landslidePredictor';
 
 export const EnvironmentalDataScreen: React.FC = () => {
   const [data, setData] = useState<EnvironmentalData>({
@@ -31,15 +23,122 @@ export const EnvironmentalDataScreen: React.FC = () => {
     humidity: '',
     windSpeed: '',
     notes: '',
+    timestamp: new Date().toISOString(),
+    location: {
+      latitude: -23.5505,
+      longitude: -46.6333,
+      name: 'Encosta Sul',
+    },
   });
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = () => {
-    // TODO: Implement API call to save data
-    Alert.alert(
-      'Sucesso',
-      'Dados ambientais registrados com sucesso!',
-      [{ text: 'OK' }]
-    );
+  const validateData = (): boolean => {
+    const requiredFields = [
+      { field: 'soilMoisture', label: 'Umidade do Solo' },
+      { field: 'slopeInclination', label: 'Inclinação do Solo' },
+      { field: 'rainfall', label: 'Precipitação' },
+      { field: 'riverLevel', label: 'Nível do Rio' },
+      { field: 'temperature', label: 'Temperatura' },
+      { field: 'humidity', label: 'Umidade do Ar' },
+      { field: 'windSpeed', label: 'Velocidade do Vento' },
+    ] as const;
+
+    for (const { field, label } of requiredFields) {
+      const value = data[field];
+      if (!value || value.trim() === '') {
+        Alert.alert('Erro', `Por favor, preencha o campo ${label}`);
+        return false;
+      }
+
+      const numValue = parseFloat(value);
+      if (isNaN(numValue)) {
+        Alert.alert('Erro', `O valor de ${label} deve ser um número válido`);
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async () => {
+    if (!validateData()) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Save environmental data
+      await environmentalDataService.saveData(data);
+
+      // Assess landslide risk
+      const assessment = await landslidePredictor.assessRiskFromEnvironmentalData(
+        data,
+        data.location!
+      );
+
+      // Show appropriate alert based on risk level
+      if (assessment.riskLevel === 'critical') {
+        Alert.alert(
+          'Alerta Crítico',
+          `Risco CRÍTICO de deslizamento detectado!\n\n` +
+          `Umidade do Solo: ${data.soilMoisture}%\n` +
+          `Inclinação: ${data.slopeInclination}°\n` +
+          `Precipitação: ${data.rainfall} mm/h\n` +
+          `Nível do Rio: ${data.riverLevel} m\n\n` +
+          'Recomendações:\n' +
+          '- Evacuação imediata\n' +
+          '- Ativar todos os recursos de emergência',
+          [{ text: 'OK' }]
+        );
+      } else if (assessment.riskLevel === 'high') {
+        Alert.alert(
+          'Alerta de Risco Alto',
+          `Risco ALTO de deslizamento detectado!\n\n` +
+          `Umidade do Solo: ${data.soilMoisture}%\n` +
+          `Inclinação: ${data.slopeInclination}°\n` +
+          `Precipitação: ${data.rainfall} mm/h\n` +
+          `Nível do Rio: ${data.riverLevel} m\n\n` +
+          'Recomendações:\n' +
+          '- Iniciar evacuação preventiva\n' +
+          '- Ativar equipe de emergência',
+          [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert(
+          'Sucesso',
+          'Dados ambientais registrados com sucesso!\n\n' +
+          `Nível de Risco: ${assessment.riskLevel.toUpperCase()}\n` +
+          `Score: ${assessment.riskScore}\n\n` +
+          'Previsões:\n' +
+          `24h: ${assessment.predictions.next24h}\n` +
+          `48h: ${assessment.predictions.next48h}\n` +
+          `72h: ${assessment.predictions.next72h}`,
+          [{ text: 'OK' }]
+        );
+      }
+
+      // Clear form after successful save
+      setData({
+        soilMoisture: '',
+        slopeInclination: '',
+        rainfall: '',
+        riverLevel: '',
+        temperature: '',
+        humidity: '',
+        windSpeed: '',
+        notes: '',
+        timestamp: new Date().toISOString(),
+        location: data.location,
+      });
+    } catch (error) {
+      Alert.alert(
+        'Erro',
+        'Não foi possível salvar os dados ambientais. Tente novamente.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const renderInputField = (
@@ -58,6 +157,7 @@ export const EnvironmentalDataScreen: React.FC = () => {
           onChangeText={onChangeText}
           keyboardType={keyboardType}
           placeholder={`Digite ${label.toLowerCase()}`}
+          placeholderTextColor="#8E8E93"
         />
         <Text style={styles.unitText}>{unit}</Text>
       </View>
@@ -126,12 +226,23 @@ export const EnvironmentalDataScreen: React.FC = () => {
             multiline
             numberOfLines={4}
             placeholder="Adicione observações relevantes..."
+            placeholderTextColor="#8E8E93"
           />
         </View>
 
-        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-          <Ionicons name="save-outline" size={24} color="#FFFFFF" />
-          <Text style={styles.submitButtonText}>Salvar Dados</Text>
+        <TouchableOpacity 
+          style={[styles.submitButton, loading && styles.submitButtonDisabled]} 
+          onPress={handleSubmit}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <>
+              <Ionicons name="save-outline" size={24} color="#FFFFFF" />
+              <Text style={styles.submitButtonText}>Salvar Dados</Text>
+            </>
+          )}
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -195,15 +306,21 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 16,
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  submitButtonDisabled: {
+    opacity: 0.7,
   },
   submitButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+    marginLeft: 8,
   },
   unitText: {
     fontSize: 14,
     color: '#8E8E93',
-    marginTop: 4,
+    marginRight: 12,
   },
 }); 
