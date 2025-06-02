@@ -442,13 +442,16 @@ const styles = StyleSheet.create({
   },
   actionDetails: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    // Changed to wrap content if needed
+    flexWrap: 'wrap', 
+    justifyContent: 'flex-start', // Align to start, let wrap handle flow
     marginBottom: 8,
   },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 4,
+    marginRight: 10, // Added some right margin for spacing between detail rows
   },
   priorityText: {
     marginLeft: 8,
@@ -462,14 +465,19 @@ const styles = StyleSheet.create({
   },
   actionButtons: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    // Changed to space-between to distribute buttons evenly
+    justifyContent: 'space-between', 
+    marginTop: 8,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 8,
     borderRadius: 8,
-    marginLeft: 8,
+    // Removed marginLeft and added marginHorizontal and flex for even distribution
+    flex: 1, 
+    marginHorizontal: 4, 
+    justifyContent: 'center', // Center content within each button
   },
   editButton: {
     backgroundColor: '#F5F5F5',
@@ -515,4 +523,4 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#FF3B30',
   },
-}); 
+});
