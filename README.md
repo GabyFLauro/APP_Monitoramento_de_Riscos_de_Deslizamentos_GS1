@@ -194,7 +194,7 @@ Copiar URL do navegador (ex: http://localhost:19006)
 
 Colar na extensão Mobile View
 
-OBS: Se utilizar o Mobile View alguns gráficos e botões estão desconfigut=rados para o celular do Mobile View. 
+
 
 
 
